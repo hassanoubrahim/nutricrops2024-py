@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Serial Port Control</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f9;
+      padding: 30px;
+      text-align: center;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+      display: inline-block;
+      min-width: 400px;
+    }
+    h1 { margin-bottom: 20px; }
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button {
+      cursor: pointer;
+      background: #007BFF;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .log {
+      margin-top: 20px;
+      padding: 10px;
+      background: #eee;
+      border-radius: 6px;
+      height: 200px;
+      overflow-y: auto;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Serial Port Control</h1>
+    
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+    <br>
+
+    <input type="text" id="command" placeholder="Enter command" />
+    <button onclick="sendCommand()">Send</button>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    function log(message) {
+      const logBox = document.getElementById("log");
+      logBox.innerHTML += message + "<br>";
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    async function connect() {
+      const res = await fetch("/connect", {method: "POST"});
+      const data = await res.json();
+      log("🔌 " + data.message);
+    }
+
+    async function disconnect() {
+      const res = await fetch("/disconnect", {method: "POST"});
+      const data = await res.json();
+      log("❌ " + data.message);
+    }
+
+    async function sendCommand() {
+      const cmd = document.getElementById("command").value;
+      const res = await fetch("/send", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({command: cmd})
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        log("📤 Sent: " + data.sent);
+        log("📥 Response: " + data.response);
+      } else {
+        log("⚠️ " + data.message);
+      }
+    }
+  </script>
+</body>
+</html>
