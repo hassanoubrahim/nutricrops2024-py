@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify
 import serial
 import time
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="../templates")
 
 # ✅ Update with your correct port and baudrate
 PORT = "COM3"        # Windows example, use "/dev/ttyUSB0" or "/dev/ttyACM0" on Linux
