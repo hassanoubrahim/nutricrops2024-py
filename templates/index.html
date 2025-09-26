@@ -46,7 +46,7 @@
     }
 
     async function sendCommand() {
-      const cmd = "TEST\n"; // Example
+      const cmd = "Go\n"; // Example
       const data = new TextEncoder().encode(cmd);
       if (writer) {
         await writer.write(data);
