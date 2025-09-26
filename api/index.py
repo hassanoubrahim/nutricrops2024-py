@@ -1,38 +1,53 @@
-from flask import Flask, request, jsonify, make_response, render_template
+from flask import Flask, render_template, request, jsonify
+import serial
+import time
 
 app = Flask(__name__)
+
+# ✅ Update with your correct port and baudrate
+PORT = "COM3"        # Windows example, use "/dev/ttyUSB0" or "/dev/ttyACM0" on Linux
+BAUDRATE = 9600
+
+ser = None
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
-@app.route("/save_config", methods=["POST"])
-def save_config():
-    data = request.json
-    resp = make_response(jsonify({"status": "✅ Config saved", "config": data}))
-    # store each config key in cookies
-    for key, value in data.items():
-        resp.set_cookie(key, str(value), max_age=60*60*24*7)  # 7 days
-    return resp
+@app.route("/connect", methods=["POST"])
+def connect():
+    global ser
+    try:
+        ser = serial.Serial(PORT, BAUDRATE, timeout=1)
+        time.sleep(2)  # wait for device reset
+        return jsonify({"status": "success", "message": f"Connected to {PORT}"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
 
-@app.route("/get_config", methods=["GET"])
-def get_config():
-    config = {
-        "baudRate": request.cookies.get("baudRate"),
-        "port": request.cookies.get("port")
-    }
-    return jsonify(config)
+@app.route("/send", methods=["POST"])
+def send():
+    global ser
+    if ser is None or not ser.is_open:
+        return jsonify({"status": "error", "message": "Serial port not connected"})
+    
+    try:
+        data = request.json.get("command", "")
+        ser.write((data + "\n").encode("utf-8"))
+        time.sleep(0.5)
+        response = ser.readline().decode("utf-8", errors="ignore").strip()
+        return jsonify({"status": "success", "sent": data, "response": response})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
 
-@app.route("/send_command", methods=["POST"])
-def send_command():
-    data = request.json
-    cmd = data.get("command")
-    baud = request.cookies.get("baudRate")
-    port = request.cookies.get("port")
-
-    # Just log for now
-    print(f"📤 Command: {cmd}, Using Config: baud={baud}, port={port}")
-    return jsonify({"status": "✅ Command sent", "command": cmd, "config": {"baudRate": baud, "port": port}})
+@app.route("/disconnect", methods=["POST"])
+def disconnect():
+    global ser
+    try:
+        if ser and ser.is_open:
+            ser.close()
+        return jsonify({"status": "success", "message": "Disconnected"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
 
 if __name__ == "__main__":
     app.run(debug=True)
